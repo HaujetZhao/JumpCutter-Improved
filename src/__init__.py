@@ -21,10 +21,11 @@ from audiotsm.io.wav import WavReader, WavWriter
 # from audiotsm2.io.array import ArrReader, ArrWriter
 from scipy.io import wavfile
 
-os.chdir(os.path.dirname(os.path.abspath(__file__))) # 更改工作目录，指向正确的当前文件夹
-sys.path.append(os.path.dirname(os.path.abspath(__file__))) # 将当前目录导入 python 寻找 package 和 moduel 的变量
-os.environ['PATH'] += os.pathsep + os.path.abspath('./bin') # 将可执行文件的目录加入环境变量
-os.environ['PATH'] += os.pathsep + os.path.abspath('./bin/windows') # 将可执行文件的目录加入环境变量
+os.chdir(os.path.dirname(os.path.abspath(__file__)))  # 更改工作目录，指向正确的当前文件夹
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # 将当前目录导入 python 寻找 package 和 moduel 的变量
+os.environ['PATH'] += os.pathsep + os.path.abspath('./bin')  # 将可执行文件的目录加入环境变量
+os.environ['PATH'] += os.pathsep + os.path.abspath('./bin/windows')  # 将可执行文件的目录加入环境变量
+
 
 class Parameters():
     def __init__(self):
@@ -35,7 +36,7 @@ class Parameters():
         self.有声片段速度 = 1.00
 
         self.片段间缓冲帧数 = 3
-        self.声音检测相对阈值 = 0.025
+        self.声音检测相对阈值 = 0.04
 
         self.视频编码器 = 'libx264'
         self.视频质量crf参数 = 23
@@ -47,6 +48,13 @@ class Parameters():
         self.音频过渡区块大小 = 400
 
         self.临时文件夹 = ''
+
+        self.spleeter的Python解释器路径 = 'D:/Users/Haujet/Code/虚拟环境/Spleeter/Scripts/python.exe'
+        self.spleeter的模型文件夹路径 = 'D:/Users/Haujet/Code/脚本仓库 Python/JumpCutter-Improved/src/test/pretrained_models'
+        self.使用spleeter生成辅助音频 = False
+        self.spleeter使用模型名称 = '5stems'
+        self.spleeter辅助音频文件名 = 'vocals.wav'
+        self.spleeter调用命令行 = True  # 如果改成 False，就会在本脚本内调用 spleeter 模块，但是 Windows 下调用 spleeter 不能使用多线程，速度会慢些。所以建议使用命令行的方式调用 Spleeter。
 
     def 得到参数(self):
         self.得到输入文件()
@@ -63,6 +71,8 @@ class Parameters():
 
         self.得到只处理音频()
         self.得到辅助音频文件()
+
+        self.得到使用spleeter生成辅助音频()
 
         self.确认参数()
 
@@ -81,6 +91,7 @@ class Parameters():
     8. 视频质量crf参数：{self.视频质量crf参数}\n
     9. 只处理音频：{self.只处理音频}
    10. 辅助音频文件：{self.辅助音频文件}\n
+   11. 使用 spleeter 生成辅助音频文件：{self.使用spleeter生成辅助音频}\n
 如果确认正确，请回车继续，接下来将开始视频处理；
 而如果有参数不正确，需要修改，请输入对应的序号，再回车：\n\n''')
         try:
@@ -114,16 +125,17 @@ class Parameters():
             self.得到只处理音频()
         elif int(用户输入) == 10:
             self.得到辅助音频文件()
+        elif int(用户输入) == 11:
+            self.得到使用spleeter生成辅助音频()
         else:
             return
         self.确认参数()
-
 
     def 得到输入文件(self):
         if len(sys.argv) > 1 and self.输入文件 == '' and os.path.exists(sys.argv[1]):
             self.输入文件 = sys.argv[1]
             print(f'要处理的视频文件为：{self.输入文件}')
-                
+
         else:
             while True:
                 用户输入 = input(f'请输入要处理的视频路径：\n（默认值：{self.输入文件}）\n')
@@ -138,7 +150,7 @@ class Parameters():
 
     def 得到输出文件(self):
         if self.输出文件 == '':
-            if len(sys.argv) > 2 :
+            if len(sys.argv) > 2:
                 self.输出文件 = sys.argv[2]
             else:
                 输入文件Path = pathlib.Path(self.输入文件)
@@ -176,6 +188,24 @@ class Parameters():
                 continue
             break
 
+    def 得到使用spleeter生成辅助音频(self):
+        if self.spleeter调用命令行:
+            if os.path.exists(self.spleeter的Python解释器路径) and os.path.exists(self.spleeter的模型文件夹路径) and pathlib.Path(
+                    self.spleeter的模型文件夹路径).name == 'pretrained_models':
+                self.使用spleeter生成辅助音频 = self.得到布尔值(f'''是否使用 spleeter 生成辅助音频文件用于分段？
+    spleeter的Python解释器路径：{self.spleeter的Python解释器路径}
+    spleeter的模型文件夹路径：{self.spleeter的模型文件夹路径}
+    spleeter 使用的模型名称：{self.spleeter使用模型名称}
+    spleeter 辅助音轨名：{self.spleeter辅助音频文件名}\n''', False)
+        else:
+            try:
+                import spleeter
+                self.使用spleeter生成辅助音频 = self.得到布尔值('是否使用 spleeter 生成辅助音频文件用于分段？\n', False)
+                if self.使用spleeter生成辅助音频:
+                    from spleeter.separator import Separator
+            except:
+                pass
+
     def 检查目标文件路径(self, 路径):
         目标文件夹Path = pathlib.Path('路径').parent
         if not 目标文件夹Path.exists():
@@ -184,7 +214,7 @@ class Parameters():
     def 得到临时文件夹(self):
         self.临时文件夹 = tempfile.mkdtemp(dir=os.path.dirname(self.输出文件), prefix=pathlib.Path(self.输入文件).stem)
 
-    def 得到整数(self, 提示语, 默认值:int, 最小值:int, 最大值:int):
+    def 得到整数(self, 提示语, 默认值: int, 最小值: int, 最大值: int):
         while True:
             数值 = input(提示语 + f'(默认值：{默认值}   有效数值：{最小值} ~ {最大值})\n')
             if 数值 == '':
@@ -200,7 +230,7 @@ class Parameters():
             break
         return 数值
 
-    def 得到小数(self, 提示语, 默认值:float, 最小值:float, 最大值:float):
+    def 得到小数(self, 提示语, 默认值: float, 最小值: float, 最大值: float):
         while True:
             数值 = input(提示语 + f'(默认值：{默认值}   有效数值：{最小值} ~ {最大值})\n')
             if 数值 == '':
@@ -216,13 +246,13 @@ class Parameters():
             break
         return 数值
 
-    def 得到字符串(self, 提示语, 默认值:str):
+    def 得到字符串(self, 提示语, 默认值: str):
         数值 = input(提示语 + f'\n(默认值：{默认值})\n')
         if 数值 == '':
             return 默认值
         return 数值
 
-    def 得到布尔值(self, 提示语, 默认值:bool):
+    def 得到布尔值(self, 提示语, 默认值: bool):
         用户回应 = input(提示语 + f'\n(默认值：{默认值})\n输入 1、y、True 表示“是”；输入 0, n, False 或表示“否”；其它值或直接回车为默认\n').lower()
         if 用户回应 == '1' or 用户回应 == 'y' or 用户回应 == 'true':
             return True
@@ -230,7 +260,6 @@ class Parameters():
             return False
         else:
             return 默认值
-
 
 
 def 得到输入视频帧率(视频文件):
@@ -244,6 +273,7 @@ def 得到输入视频帧率(视频文件):
             print(f'视频帧率是：{视频帧率}')
             return 视频帧率
 
+
 def 得到输入音频采样率(音频文件):
     command = f'ffmpeg -hide_banner -i "{音频文件}"'
     ffmpeg输出 = subprocess.run(command, encoding='utf-8', capture_output=True).stderr
@@ -255,16 +285,19 @@ def 得到输入音频采样率(音频文件):
             print(f'音频采样率是：{采样率}')
             return 采样率
 
+
 def 提取音频流(输入文件, 输出文件, 音频采样率):
     command = f'ffmpeg -hide_banner -i "{输入文件}" -ac 2 -ar {音频采样率} -vn "{输出文件}"'
     subprocess.run(command, stderr=subprocess.PIPE)
+
 
 def 得到最大音量(音频数据):
     maxv = float(np.max(音频数据))
     minv = float(np.min(音频数据))
     return max(maxv, -minv)
 
-def 由音频得到片段列表(音频文件, 视频帧率, 参数:Parameters):
+
+def 由音频得到片段列表(音频文件, 视频帧率, 参数: Parameters):
     # 变量 音频采样率, 总音频数据 ，得到采样总数为 wavfile.read("audio.wav").shape[0] ，（shape[1] 是声道数）
     采样率, 总音频数据 = wavfile.read(音频文件)
     总音频采样数 = 总音频数据.shape[0]
@@ -300,15 +333,18 @@ def 由音频得到片段列表(音频文件, 视频帧率, 参数:Parameters):
     print(f'静音、响亮片段分析完成')
     return 片段列表
 
+
 def 打印列表(列表):
     print(f'列表信息如下：')
     for i in range(len(列表)):
         print(f'{列表[i]}', end='    ')
 
+
 def 查找可执行程序(program):
     """
     Return the path for a given executable.
     """
+
     def is_exe(file_path):
         """
         Checks whether a file is executable.
@@ -329,6 +365,25 @@ def 查找可执行程序(program):
             if is_exe(exe_file):
                 return exe_file
 
+
+def 由spleeter得到辅助音频数据(音频文件, 参数: Parameters):
+    模型父文件夹 = (pathlib.Path(参数.spleeter的模型文件夹路径).resolve().parent).as_posix()
+    if 参数.spleeter调用命令行:
+        输入 = 音频文件
+        输出 = 参数.临时文件夹
+        wav文件Path = pathlib.Path(输出) / pathlib.Path(输入).stem / 参数.spleeter辅助音频文件名
+        命令 = f'"{参数.spleeter的Python解释器路径}" -m spleeter separate -i "{输入}" -p spleeter:{参数.spleeter使用模型名称} -o "{输出}"'
+        print(命令)
+        subprocess.run(命令, cwd=模型父文件夹)
+        采样率, 数据 = wavfile.read(wav文件Path, 'r')
+    else:
+        os.chdir(模型父文件夹)
+        separator = Separator('spleeter:5stems', multiprocess=False)
+        数据 = separator.separate(wavfile.read(input_)[1])[os.path.splitext(参数.spleeter辅助音频文件名)[0]]
+        采样率 = 44100
+    return 采样率, 数据
+
+
 def 音频变速(wav音频数据列表, 声道数, 采样率, 目标速度):
     if 目标速度 == 1.0:
         return wav音频数据列表
@@ -338,7 +393,7 @@ def 音频变速(wav音频数据列表, 声道数, 采样率, 目标速度):
         os.close(soundstretch临时输出文件[0])
         wavfile.write(内存音频二进制缓存区, 采样率, wav音频数据列表)
         变速命令 = f'soundstretch stdin "{soundstretch临时输出文件[1]}" -tempo={(目标速度 - 1) * 100}'
-        变速线程 = subprocess.Popen(变速命令,stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        变速线程 = subprocess.Popen(变速命令, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         变速线程.communicate(内存音频二进制缓存区.getvalue())
         采样率, 音频区间处理后的数据 = wavfile.read(soundstretch临时输出文件[1])
         os.remove(soundstretch临时输出文件[1])
@@ -353,7 +408,7 @@ def 音频变速(wav音频数据列表, 声道数, 采样率, 目标速度):
     #             )
     #             音频区间处理后的数据 = 写入器.output
     #     return 音频区间处理后的数据
-    
+
     # 这个部分使用 audiotsm 进行变速
     else:
         sFile = io.BytesIO()
@@ -365,14 +420,17 @@ def 音频变速(wav音频数据列表, 声道数, 采样率, 目标速度):
                 tsm = phasevocoder(reader.channels, speed=目标速度)
                 tsm.run(reader, writer)
         _, 音频区间处理后的数据 = wavfile.read(io.BytesIO(eFile.getvalue()))
-    
+
     return 音频区间处理后的数据
 
-def 处理音频(音频文件, 片段列表, 视频帧率, 参数:Parameters, concat记录文件路径):
+
+def 处理音频(音频文件, 片段列表, 视频帧率, 参数: Parameters, concat记录文件路径):
     print(f'开始根据分段信息处理音频')
     速度 = [参数.静音片段速度, 参数.有声片段速度]
     采样率, 总音频数据 = wavfile.read(音频文件)
     最大音量 = 得到最大音量(总音频数据)
+    if 最大音量 == 0:
+        最大音量 = 1
     衔接前总音频片段末点 = 0  # 上一个帧为空
     concat记录文件 = open(concat记录文件路径, "w", encoding='utf-8')
     输出音频的数据 = np.zeros((0, 总音频数据.shape[1]))  # 返回一个数量为 0 的列表，数据类型为声音 shape[1]
@@ -434,8 +492,8 @@ def 处理音频(音频文件, 片段列表, 视频帧率, 参数:Parameters, co
     concat记录文件.close()
     print('音频文件处理完毕\n\n')
 
-def pyav处理视频流(参数:Parameters, 临时视频文件, 片段列表):
 
+def pyav处理视频流(参数: Parameters, 临时视频文件, 片段列表):
     片段速度 = [参数.静音片段速度, 参数.有声片段速度]
 
     输入路径 = 'D:/Users/Haujet/Videos/项目/CapsWriter使用/CapsWriter 2.0使用教程.mp4'
@@ -464,7 +522,7 @@ def pyav处理视频流(参数:Parameters, 临时视频文件, 片段列表):
                 # print(i / ((time.time() - t1) + 1), end='   ')
                 # print(i)
                 # try:
-                if i > 2200 and i % 20 == 0:...
+                if i > 2200 and i % 20 == 0: ...
                 print(f'视频帧序号：{视频帧序号}')
                 try:
                     output.mux(out_stream.encode(frame))
@@ -475,8 +533,8 @@ def pyav处理视频流(参数:Parameters, 临时视频文件, 片段列表):
     output.close()
     print(f'\n视频流处理完毕\n')
 
-def ffmpeg处理视频流(参数:Parameters, 临时视频文件, 片段列表):
 
+def ffmpeg处理视频流(参数: Parameters, 临时视频文件, 片段列表):
     片段速度 = [参数.静音片段速度, 参数.有声片段速度]
 
     process1 = (
@@ -534,7 +592,8 @@ def ffmpeg处理视频流(参数:Parameters, 临时视频文件, 片段列表):
             )
             输出等效 += 1
         if index % 200 == 0:
-            print(f'帧速：{int(index / max(time.time() - 开始时间, 1))}, 剩余：{总帧数 - index} 帧，剩余时间：{int((总帧数 - index) / max(1, index / max(time.time() - 开始时间, 1)))}s    \n')
+            print(
+                f'帧速：{int(index / max(time.time() - 开始时间, 1))}, 剩余：{总帧数 - index} 帧，剩余时间：{int((总帧数 - index) / max(1, index / max(time.time() - 开始时间, 1)))}s    \n')
     process2.stdin.close()
     process1.wait()
     process2.wait()
@@ -568,6 +627,11 @@ def main():
         提取音频流(参数.辅助音频文件, 分析用的音频文件, 采样率)
         提取音频流(参数.输入文件, 变速用的音频文件, 采样率)
 
+    if 参数.使用spleeter生成辅助音频:
+        采样率, 辅助音频数据 = 由spleeter得到辅助音频数据(分析用的音频文件, 参数)
+        分析用的音频文件 = (pathlib.Path(参数.临时文件夹) / 'AnalyticAudio.wav').as_posix()
+        wavfile.write(分析用的音频文件, 采样率, 辅助音频数据)
+
     # 从音频得到片段
     片段列表 = 由音频得到片段列表(音频文件=分析用的音频文件, 视频帧率=视频帧率, 参数=参数)
     打印列表(片段列表)
@@ -591,6 +655,7 @@ def main():
     subprocess.run(command, encoding='utf-8', stderr=subprocess.PIPE)
     rmtree(参数.临时文件夹)
     print('\n处理完毕\n')
+
 
 if __name__ == '__main__':
     main()
