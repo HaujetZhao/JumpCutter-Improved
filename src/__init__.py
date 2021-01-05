@@ -170,8 +170,8 @@ class Parameters():
 
     def 得到辅助音频文件(self):
         while True:
-            self.辅助音频文件 = self.得到字符串('如果有辅助音频（比如去除了背景音的音频轨），你可以在这里输入，直接回车表示为空', '')
-            if self.辅助音频文件 != '' and not os.path.exists(self.辅助音频文件.strip('\'"')):
+            self.辅助音频文件 = self.得到字符串('如果有辅助音频（比如去除了背景音的音频轨），你可以在这里输入，直接回车表示为空', '').strip('\'"')
+            if self.辅助音频文件 != '' and not os.path.exists(self.辅助音频文件):
                 print(f'您输入的音频文件路径不存在，请重新输入')
                 continue
             break
@@ -565,7 +565,7 @@ def main():
     else:
         分析用的音频文件 = (pathlib.Path(参数.临时文件夹) / 'AnalyticAudio.wav').as_posix()
         变速用的音频文件 = (pathlib.Path(参数.临时文件夹) / 'OriginalAudio.wav').as_posix()
-        提取音频流(参数.输入文件, 分析用的音频文件, 采样率)
+        提取音频流(参数.辅助音频文件, 分析用的音频文件, 采样率)
         提取音频流(参数.输入文件, 变速用的音频文件, 采样率)
 
     # 从音频得到片段
