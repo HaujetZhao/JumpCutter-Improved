@@ -1,0 +1,5 @@
+av
+python-ffmpeg
+numpy
+scipy
+audiotsm
