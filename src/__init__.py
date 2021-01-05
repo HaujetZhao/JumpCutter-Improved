@@ -262,6 +262,17 @@ class Parameters():
             return 默认值
 
 
+def 得到输入视频时长(视频文件):
+    command = f'ffmpeg -hide_banner -i "{视频文件}"'
+    ffmpeg输出 = subprocess.run(command, encoding='utf-8', capture_output=True).stderr
+    params = ffmpeg输出
+    m = re.search(r'Duration.+(\d{2}:\d{2}:\d{2}.\d{2}).+\n\s+Stream #.*Video.* ([0-9\.]*) fps', params)
+    if m is not None:
+        长度split = m.group(1).split(':')
+        视频长度 = int(长度split[0]) * 60 * 60 + int(长度split[1]) * 60 + float(长度split[2])
+        print(f'视频长度是：{视频长度}')
+        return 视频长度
+
 def 得到输入视频帧率(视频文件):
     command = f'ffmpeg -hide_banner -i "{视频文件}"'
     ffmpeg输出 = subprocess.run(command, encoding='utf-8', capture_output=True).stderr
@@ -557,6 +568,8 @@ def ffmpeg处理视频流(参数: Parameters, 临时视频文件, 片段列表):
     平均帧率 = float(视频流.average_rate)
     帧率 = float(视频流.framerate)
     总帧数 = 视频流.frames
+    if 总帧数 == 0:
+        总帧数 = int(得到输入视频时长(参数.输入文件) * 平均帧率)
     格式 = format
     像素格式 = 视频流.pix_fmt
     宽度 = 视频流.width
@@ -632,6 +645,7 @@ def main():
         视频帧率 = 30
     else:
         视频帧率 = 得到输入视频帧率(参数.输入文件)
+        视频时长 = 得到输入视频时长(参数.输入文件)
 
     # 得到音频采样率
     if 参数.辅助音频文件 != '':
