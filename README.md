@@ -40,10 +40,10 @@
 
 ```
 av
-python-ffmpeg
+ffmpeg-python
 numpy
 scipy
-audiotsm2
+audiotsm
 ```
 
 #### 二进制包
