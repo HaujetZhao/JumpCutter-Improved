@@ -692,8 +692,11 @@ def main():
     else:
         command = f'ffmpeg -y -hide_banner -i "{临时视频文件}" -safe 0 -f concat -i "{concat记录文件}" -c:v copy "{参数.输出文件}"'
     subprocess.run(command, encoding='utf-8', stderr=subprocess.PIPE)
-    rmtree(参数.临时文件夹)
-    print('\n处理完毕\n')
+    try:
+        rmtree(参数.临时文件夹)
+    except Exception as e:
+        print(f'删除临时文件夹失败，可能是被占用导致，请手动删除：\n    {参数.临时文件夹}')
+    input('\n处理完毕，回车关闭\n')
 
 
 if __name__ == '__main__':
