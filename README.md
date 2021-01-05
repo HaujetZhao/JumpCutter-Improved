@@ -28,7 +28,9 @@
 
 ### Spleeter 生成辅助音频
 
-脚本自带了使用 Spleeter 生成辅助音频的选项。如果你的电脑上安装了 Spleeter，并且下载了 Spleeter 的模型库，请编辑源代码中的下列部分：
+Spleeter 可以将音频中的人声和背景声（音乐、风声、杂音）分开。如果你的视频的声音中，有大量杂音，影响自动分段，那就可以启用这个选项，脚本会先将音频声音中的背景音乐、杂音去掉，只留下纯净的人声，再进行分段变速。
+
+如果你的电脑上安装了 Spleeter，并且下载了 Spleeter 的模型库，请编辑源代码中的下列部分：
 
 ```python
 class Parameters():
@@ -46,6 +48,13 @@ class Parameters():
 将可以运行 Spleeter 的 python 解释器路径、Spleeter的模型文件夹路径填入对应的位置，脚本在检测到 Spleeter 可用之后，在运行时会提示是否启用。
 
 如果上述参数填写不正确，或者 Spleeter 没有安装上，那么这个选项会默认禁用。
+
+Spleeter 对一些依赖包有版本要求，用 pip 安装时，可能将电脑上的一些包替换成更旧的版本，所以建议使用 Python 虚拟环境：
+
+* 新建一个目录，在这个目录下，运行 `python -m venv .` 就可以将这个目录初始化为一个虚拟环境了
+* 再执行 `scripts/activate.bat` 就激活进入这个虚拟环境了，在这个环境下，使用 `pip install spleeter` 就可以放心地将 spleeter 安装到这个虚拟环境中
+* 找到这个环境中的 `python.exe` 文件，它就是能够运行spleeter的Python解释器，将其路径填入源码。
+* 从 [spleeter releases](https://github.com/deezer/spleeter/releases) 界面下载一个训练好的模型，解压到一个文件夹。模型的父目录应该是名为 `pretrained_models`，比如五音轨模型的目录就应该是 `pretrained_models/5stems` 
 
 
 
