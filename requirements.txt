@@ -1,5 +1,4 @@
 av
-ffmpeg-python
 numpy
 scipy
 audiotsm

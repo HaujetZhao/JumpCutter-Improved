@@ -72,7 +72,6 @@ Spleeter 对一些依赖包有版本要求，用 pip 安装时，可能将电脑
 
 ```
 av
-ffmpeg-python
 numpy
 scipy
 audiotsm

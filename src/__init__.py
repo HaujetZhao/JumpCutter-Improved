@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 import av
-import ffmpeg
+# import ffmpeg
 import io
 import math
 import os
@@ -537,12 +537,19 @@ def pyav处理视频流(参数: Parameters, 临时视频文件, 片段列表):
 def ffmpeg处理视频流(参数: Parameters, 临时视频文件, 片段列表):
     片段速度 = [参数.静音片段速度, 参数.有声片段速度]
 
-    process1 = (
-        ffmpeg
-            .input(参数.输入文件)
-            .output('pipe:', format='rawvideo', pix_fmt='rgb24')
-            .run_async(pipe_stdout=True)
-    )
+    # process1 = (
+    #     ffmpeg
+    #         .input(参数.输入文件)
+    #         .output('pipe:', format='rawvideo', pix_fmt='rgb24')
+    #         .run_async(pipe_stdout=True)
+    # )
+    process1 = subprocess.Popen(['ffmpeg',
+                                 '-i', 参数.输入文件,
+                                 '-f', 'rawvideo',
+                                 '-pix_fmt', 'rgb24',
+                                 '-'], stdout=subprocess.PIPE)
+
+    # process1 = subprocess.Popen(f'ffmpeg -i {参数.输入文件} -f rawvideo', stdout=subprocess.PIPE)
 
     输入视频容器 = av.open(参数.输入文件)
     输入视频容器.streams.video[0].thread_type = 'AUTO'
@@ -555,13 +562,25 @@ def ffmpeg处理视频流(参数: Parameters, 临时视频文件, 片段列表):
     宽度 = 视频流.width
     高度 = 视频流.height
     输入视频容器.close()
-    process2 = (
-        ffmpeg
-            .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(宽度, 高度), framerate=平均帧率)
-            .output(临时视频文件, pix_fmt=像素格式, vcodec=参数.视频编码器, crf=参数.视频质量crf参数)
-            .overwrite_output()
-            .run_async(pipe_stdin=True)
-    )
+    # process2 = (
+    #     ffmpeg
+    #         .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(宽度, 高度), framerate=平均帧率)
+    #         .output(临时视频文件, pix_fmt=像素格式, vcodec=参数.视频编码器, crf=参数.视频质量crf参数)
+    #         .overwrite_output()
+    #         .run_async(pipe_stdin=True)
+    # )
+    process2 = subprocess.Popen(['ffmpeg', '-y',
+                                 '-f', 'rawvideo',
+                                 '-vcodec', 'rawvideo',
+                                 '-pix_fmt', 'rgb24',
+                                 '-s', f'{宽度}*{高度}',
+                                 '-framerate', f'{平均帧率}',
+                                 '-i', '-',
+                                 '-pix_fmt', 像素格式,
+                                 '-vcodec', 参数.视频编码器,
+                                 '-crf', f'{参数.视频质量crf参数}',
+                                 临时视频文件], stdin=subprocess.PIPE)
+
 
     开始时间 = time.time()
     片段 = 片段列表.pop(0)
@@ -590,6 +609,10 @@ def ffmpeg处理视频流(参数: Parameters, 临时视频文件, 片段列表):
             process2.stdin.write(
                 in_bytes
             )
+            # process2.stdin.flush()
+            # process2.communicate(
+            #     in_bytes
+            # )
             输出等效 += 1
         if index % 200 == 0:
             print(
