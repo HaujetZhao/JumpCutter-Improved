@@ -1,3 +1,5 @@
+[Gitee](https://gitee.com/haujet/jump-cutter-improved)　|　[Github](https://github.com/HaujetZhao/JumpCutter-Improved) 
+
 ## 简介
 
 ### 名字由来
