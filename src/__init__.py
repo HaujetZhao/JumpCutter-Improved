@@ -51,7 +51,7 @@ class Parameters():
 
         self.spleeter的Python解释器路径 = 'D:/Users/Haujet/Code/虚拟环境/Spleeter/Scripts/python.exe'
         self.spleeter的模型文件夹路径 = 'D:/Users/Haujet/Code/脚本仓库 Python/JumpCutter-Improved/src/test/pretrained_models'
-        self.使用spleeter生成辅助音频 = False
+        self.使用spleeter生成辅助音频 = True
         self.spleeter使用模型名称 = '5stems'
         self.spleeter辅助音频文件名 = 'vocals.wav'
         self.spleeter调用命令行 = True  # 如果改成 False，就会在本脚本内调用 spleeter 模块，但是 Windows 下调用 spleeter 不能使用多线程，速度会慢些。所以建议使用命令行的方式调用 Spleeter。
@@ -197,6 +197,8 @@ class Parameters():
     spleeter的模型文件夹路径：{self.spleeter的模型文件夹路径}
     spleeter 使用的模型名称：{self.spleeter使用模型名称}
     spleeter 辅助音轨名：{self.spleeter辅助音频文件名}\n''', False)
+            else:
+                self.使用spleeter生成辅助音频 = False
         else:
             try:
                 import spleeter
@@ -204,7 +206,7 @@ class Parameters():
                 if self.使用spleeter生成辅助音频:
                     from spleeter.separator import Separator
             except:
-                pass
+                self.使用spleeter生成辅助音频 = False
 
     def 检查目标文件路径(self, 路径):
         目标文件夹Path = pathlib.Path('路径').parent
@@ -387,12 +389,12 @@ def 由spleeter得到辅助音频数据(音频文件, 参数: Parameters):
         print('正在使用 spleeter 命令行参数分离音轨')
         subprocess.run(命令, cwd=模型父文件夹)
         time.sleep(1)
-        采样率, 数据 = wavfile.read(wav文件Path, 'r')
+        采样率, 数据 = wavfile.read(wav文件Path)
     else:
         os.chdir(模型父文件夹)
         print('正在使用 spleeter 分离音轨')
         separator = Separator('spleeter:5stems', multiprocess=False)
-        数据 = separator.separate(wavfile.read(input_)[1])[os.path.splitext(参数.spleeter辅助音频文件名)[0]]
+        数据 = separator.separate(wavfile.read(音频文件)[1])[os.path.splitext(参数.spleeter辅助音频文件名)[0]]
         采样率 = 44100
     return 采样率, 数据
 
@@ -696,6 +698,7 @@ def main():
         rmtree(参数.临时文件夹)
     except Exception as e:
         print(f'删除临时文件夹失败，可能是被占用导致，请手动删除：\n    {参数.临时文件夹}')
+    os.startfile(pathlib.Path(参数.输出文件).parent)
     input('\n处理完毕，回车关闭\n')
 
 
