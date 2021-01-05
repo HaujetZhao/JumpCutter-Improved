@@ -196,13 +196,13 @@ class Parameters():
     spleeter的Python解释器路径：{self.spleeter的Python解释器路径}
     spleeter的模型文件夹路径：{self.spleeter的模型文件夹路径}
     spleeter 使用的模型名称：{self.spleeter使用模型名称}
-    spleeter 辅助音轨名：{self.spleeter辅助音频文件名}\n''', False)
+    spleeter 辅助音轨名：{self.spleeter辅助音频文件名}\n''', self.使用spleeter生成辅助音频)
             else:
                 self.使用spleeter生成辅助音频 = False
         else:
             try:
                 import spleeter
-                self.使用spleeter生成辅助音频 = self.得到布尔值('是否使用 spleeter 生成辅助音频文件用于分段？\n', False)
+                self.使用spleeter生成辅助音频 = self.得到布尔值('是否使用 spleeter 生成辅助音频文件用于分段？\n', self.使用spleeter生成辅助音频)
                 if self.使用spleeter生成辅助音频:
                     from spleeter.separator import Separator
             except:
