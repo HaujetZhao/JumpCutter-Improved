@@ -384,11 +384,13 @@ def 由spleeter得到辅助音频数据(音频文件, 参数: Parameters):
         输出 = 参数.临时文件夹
         wav文件Path = pathlib.Path(输出) / pathlib.Path(输入).stem / 参数.spleeter辅助音频文件名
         命令 = f'"{参数.spleeter的Python解释器路径}" -m spleeter separate -i "{输入}" -p spleeter:{参数.spleeter使用模型名称} -o "{输出}"'
-        print(命令)
+        print('正在使用 spleeter 命令行参数分离音轨')
         subprocess.run(命令, cwd=模型父文件夹)
+        time.sleep(1)
         采样率, 数据 = wavfile.read(wav文件Path, 'r')
     else:
         os.chdir(模型父文件夹)
+        print('正在使用 spleeter 分离音轨')
         separator = Separator('spleeter:5stems', multiprocess=False)
         数据 = separator.separate(wavfile.read(input_)[1])[os.path.splitext(参数.spleeter辅助音频文件名)[0]]
         采样率 = 44100
