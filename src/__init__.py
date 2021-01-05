@@ -398,6 +398,40 @@ def 由spleeter得到辅助音频数据(音频文件, 参数: Parameters):
         采样率 = 44100
     return 采样率, 数据
 
+def 音频分段再交由spleeter处理(音频文件, 参数: Parameters):
+    限制秒数 = 300
+
+    输入Path = pathlib.Path(音频文件)
+    片段路径前缀 = (输入Path.parent / (输入Path.stem)).as_posix()
+
+    采样率, 总音频数据 = wavfile.read(音频文件)
+    数据总量 = len(总音频数据)
+    片段数据量 = 采样率 * 300
+    数据索引 = 0
+    片段数 = math.ceil(数据总量 / 片段数据量)
+
+    if 数据总量 <= 片段数据量:
+        return 由spleeter得到辅助音频数据(音频文件, 参数)
+    else:
+        print(f'音频时长为 {数据总量/采样率}，超过了 300 秒。Spleeter 分离音频非常占用内存，为了避免内存不足导致崩溃，将整个音频文件分成 {片段数} 个音频依次处理。')
+        片段路径列表 = []
+        # 分段
+        for i in range(片段数):
+
+            片段名字 = 片段路径前缀 + str(i + 1) + 输入Path.suffix
+            wavfile.write(片段名字, 采样率, 总音频数据[数据索引: min(数据索引 + 片段数据量, 数据总量)])
+            数据索引 += 片段数据量
+            片段路径列表.append(片段名字)
+        总音频数据 = None
+        for i, 片段 in enumerate(片段路径列表):
+            print(f'总共有 {片段数} 个音频片段需要处理，正在处理第 {i + 1} 个...')
+            采样率, 数据 = 由spleeter得到辅助音频数据(片段, 参数)
+            if type(总音频数据) == type(None):
+                总音频数据 = 数据
+            else:
+                总音频数据 = np.concatenate((总音频数据, 数据))
+        return 采样率, 总音频数据
+
 
 def 音频变速(wav音频数据列表, 声道数, 采样率, 目标速度):
     if 目标速度 == 1.0:
@@ -669,7 +703,7 @@ def main():
         提取音频流(参数.输入文件, 变速用的音频文件, 采样率)
 
     if 参数.使用spleeter生成辅助音频:
-        采样率, 辅助音频数据 = 由spleeter得到辅助音频数据(分析用的音频文件, 参数)
+        采样率, 辅助音频数据 = 音频分段再交由spleeter处理(分析用的音频文件, 参数)
         分析用的音频文件 = (pathlib.Path(参数.临时文件夹) / 'AnalyticAudio.wav').as_posix()
         wavfile.write(分析用的音频文件, 采样率, 辅助音频数据)
 
