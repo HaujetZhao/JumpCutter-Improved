@@ -10,6 +10,8 @@
 
 改进后使用标准输入和标准输出，数据都是经过内存，不再频繁读写硬盘。
 
+结合了 pyav 多进程读取视频、subprocess ffmpeg 写视频，速度是 JumpCutter 的 2 到 3 倍多。
+
 ### 作用
 
 它的作用是：对视频中的声音进行分析，分成静音部分和非静音部分，分别施加不同的速度，最后合成到一个新视频。
@@ -86,41 +88,3 @@ audiotsm
 当然如果你没有安装 [soundstretch](http://www.surina.net/soundtouch/soundstretch.html) 的话，会使用次选方案 audiotsm 进行变速。但是它的变速效果有些差。
 
 
-
-## 求助
-
-现在使用了 python-ffmpeg，它是通过 subprocess 的 PIPE 来读写 stdin 和 stdout 的，它是纯 python 实现的，所以速度有些慢。
-
-如果使用 PyAv（它是在 c 层面与 ffmpeg 交互），速度能再快一倍。
-
-但是在用 PyAv 一帧一帧的写入输出流时，有时就会出现这样的错误：
-
-```
-non-strictly-monotonic PTS
- (repeated 14 more times)
-forced frame type (5) at 3360 was changed to frame type (3)
-Application provided invalid, non monotonically increasing dts to muxer in stream 0: 19262878911 >= 19262878911
-Traceback (most recent call last):
-  File "D:/Users/Haujet/Code/脚本仓库 Python/JumpCutter-Improved/src/__init__.py", line 504, in <module>
-    main()
-  File "D:/Users/Haujet/Code/脚本仓库 Python/JumpCutter-Improved/src/__init__.py", line 488, in main
-    pyav处理视频流(参数, 临时视频文件, 片段列表)
-  File "D:/Users/Haujet/Code/脚本仓库 Python/JumpCutter-Improved/src/__init__.py", line 439, in pyav处理视频流
-    输出视频容器.mux(输出视频流.encode(视频帧))
-  File "av\container\output.pyx", line 207, in av.container.output.OutputContainer.mux
-  File "av\container\output.pyx", line 227, in av.container.output.OutputContainer.mux_one
-  File "av\container\core.pyx", line 257, in av.container.core.Container.err_check
-  File "av\error.pyx", line 336, in av.error.err_check
-av.error.ValueError: [Errno 22] Invalid argument: 'D:/Users/Haujet/Desktop/CapsWriter 2.0使用教程_ten8goe/Video.mp4'; last error log: [mp4] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 19262878911 >= 19262878911
-Traceback (most recent call last):
-  File "av\container\output.pyx", line 25, in av.container.output.close_output
-TypeError: 'NoneType' object is not iterable
-Exception ignored in: 'av.container.output.OutputContainer.__dealloc__'
-Traceback (most recent call last):
-  File "av\container\output.pyx", line 25, in av.container.output.close_output
-TypeError: 'NoneType' object is not iterable
-```
-
-这个 `non monotonically increasing dts to muxer` 的问题我搜了不少，但是没有找到解决方法。
-
-如果你可以解决，请 pull request。我很期待有人能解决，因为将 python-ffmpeg 换成 PyAv 可以极大地提升它处理视频的速度。

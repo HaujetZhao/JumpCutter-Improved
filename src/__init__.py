@@ -545,19 +545,36 @@ def 处理音频(音频文件, 片段列表, 视频帧率, 参数: Parameters, c
 def pyav处理视频流(参数: Parameters, 临时视频文件, 片段列表):
     片段速度 = [参数.静音片段速度, 参数.有声片段速度]
 
-    输入路径 = 'D:/Users/Haujet/Videos/项目/CapsWriter使用/CapsWriter 2.0使用教程.mp4'
-    输出路径 = 'D:/Users/Haujet/Videos/项目/CapsWriter使用/CapsWriter 2.0使用教程2.mp4'
-    input_ = av.open(输入路径)
-    input_.streams.video[0].thread_type = 'AUTO'
-    output = av.open(输出路径, 'w')
-    in_stream = input_.streams.video[0]
-    out_stream = output.add_stream('libx264', in_stream.average_rate, options={"crf": '23', 'vsync': 'drop'})
+    # 输入路径 = 'D:/Users/Haujet/Videos/项目/CapsWriter使用/CapsWriter 2.0使用教程.mp4'
+    # 输出路径 = 'D:/Users/Haujet/Videos/项目/CapsWriter使用/CapsWriter 2.0使用教程2.mp4'
+    input_ = av.open(参数.输入文件)
+    inputVideoStream = input_.streams.video[0]
+    inputVideoStream.thread_type = 'AUTO'
+    width = inputVideoStream.width
+    height = inputVideoStream.height
+    pix_fmt = inputVideoStream.pix_fmt
+
+
+
+    output = av.open(临时视频文件, 'w')
+    out_stream = output.add_stream(参数.视频编码器, inputVideoStream.average_rate)
+    out_stream.width = width
+    out_stream.height = height
+    out_stream.pix_fmt  = pix_fmt
+    ctx = out_stream.codec_context
+    ctx.options = {"crf": f'{参数.视频质量crf参数}'}
+
+    平均帧率 = float(inputVideoStream.average_rate)
+    帧率 = float(inputVideoStream.framerate)
+    总帧数 = inputVideoStream.frames
+    if 总帧数 == 0:
+        总帧数 = int(得到输入视频时长(参数.输入文件) * 平均帧率)
+
     输入等效, 输出等效 = 0, 0
     片段 = 片段列表.pop(0)
-    t1 = time.time()
-    i = 1
+    开始时间 = time.time()
     视频帧序号 = 0
-    for packet in input_.demux(in_stream):
+    for packet in input_.demux(inputVideoStream):
         for frame in packet.decode():
             视频帧序号 += 1
             if len(片段列表) > 0 and 视频帧序号 >= 片段[1]:
@@ -566,18 +583,12 @@ def pyav处理视频流(参数: Parameters, 临时视频文件, 片段列表):
             输入等效 += (1 / 片段速度[片段[2]])
             # print(f'{输入等效}   ')
             if 输入等效 > 输出等效:
-                # print(f'输出等效: {输出等效}   ', end='')
-                # i += 1
-                # print(i / ((time.time() - t1) + 1), end='   ')
-                # print(i)
-                # try:
-                if i > 2200 and i % 20 == 0: ...
-                print(f'视频帧序号：{视频帧序号}')
-                try:
-                    output.mux(out_stream.encode(frame))
-                except Exception as e:
-                    print(e)
+                新Frame = av.video.VideoFrame.from_ndarray(frame.to_ndarray(), frame.format.name)
+                output.mux(out_stream.encode(新Frame))
                 输出等效 += 1
+            if 视频帧序号 % 200 == 0:
+                print(
+                    f'帧速：{int(视频帧序号 / max(time.time() - 开始时间, 1))}, 剩余：{总帧数 - 视频帧序号} 帧，剩余时间：{int((总帧数 - 视频帧序号) / max(1, 视频帧序号 / max(time.time() - 开始时间, 1)))}s    \n')
     input_.close()
     output.close()
     print(f'\n视频流处理完毕\n')
@@ -673,6 +684,60 @@ def ffmpeg处理视频流(参数: Parameters, 临时视频文件, 片段列表):
     process2.wait()
     print(f'\n原来视频长度：{总帧数 / 平均帧率 / 60} 分钟，输出视频长度：{int(输出等效) / 平均帧率 / 60} 分钟\n')
 
+def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, 片段列表):
+    片段速度 = [参数.静音片段速度, 参数.有声片段速度]
+
+    input_ = av.open(参数.输入文件)
+    inputVideoStream = input_.streams.video[0]
+    inputVideoStream.thread_type = 'AUTO'
+    width = inputVideoStream.width
+    height = inputVideoStream.height
+    pix_fmt = inputVideoStream.pix_fmt
+    平均帧率 = float(inputVideoStream.average_rate)
+
+    process2 = subprocess.Popen(['ffmpeg', '-y',
+                                 '-f', 'rawvideo',
+                                 '-vcodec', 'rawvideo',
+                                 '-pix_fmt', pix_fmt,
+                                 '-s', f'{width}*{height}',
+                                 '-framerate', f'{平均帧率}',
+                                 '-i', '-',
+                                 '-pix_fmt', pix_fmt,
+                                 '-vcodec', 参数.视频编码器,
+                                 '-crf', f'{参数.视频质量crf参数}',
+                                 临时视频文件], stdin=subprocess.PIPE)
+
+    帧率 = float(inputVideoStream.framerate)
+    总帧数 = inputVideoStream.frames
+    if 总帧数 == 0:
+        总帧数 = int(得到输入视频时长(参数.输入文件) * 平均帧率)
+
+    输入等效, 输出等效 = 0, 0
+    片段 = 片段列表.pop(0)
+    开始时间 = time.time()
+    视频帧序号 = 0
+    index = 0
+    for packet in input_.demux(inputVideoStream):
+        for frame in packet.decode():
+            index += 1
+            if len(片段列表) > 0 and index >= 片段[1]:片段 = 片段列表.pop(0)
+            输入等效 += (1 / 片段速度[片段[2]])
+
+            while 输入等效 > 输出等效:
+                in_bytes = frame.to_ndarray().astype(np.uint8).tobytes()
+                process2.stdin.write(
+                    in_bytes
+                )
+
+                输出等效 += 1
+            if index % 200 == 0:
+                print(
+                    f'帧速：{int(index / max(time.time() - 开始时间, 1))}, 剩余：{总帧数 - index} 帧，剩余时间：{int((总帧数 - index) / max(1, index / max(time.time() - 开始时间, 1)))}s    \n')
+    process2.stdin.close()
+    process2.wait()
+    print(f'\n原来视频长度：{总帧数 / 平均帧率 / 60} 分钟，输出视频长度：{int(输出等效) / 平均帧率 / 60} 分钟\n')
+
+
 
 def main():
     参数 = Parameters()
@@ -718,7 +783,8 @@ def main():
     if not 参数.只处理音频:
         临时视频文件 = (pathlib.Path(参数.临时文件夹) / 'Video.mp4').as_posix()
         # pyav处理视频流(参数, 临时视频文件, 片段列表)
-        ffmpeg处理视频流(参数, 临时视频文件, 片段列表)
+        # ffmpeg处理视频流(参数, 临时视频文件, 片段列表)
+        ffmpeg和pyav综合处理视频流(参数, 临时视频文件, 片段列表)
 
     音频处理线程.join()
 
