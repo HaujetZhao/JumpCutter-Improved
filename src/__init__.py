@@ -641,7 +641,7 @@ def ffmpeg处理视频流(参数: Parameters, 临时视频文件, 片段列表):
                                  '-pix_fmt', 像素格式,
                                  '-vcodec', 参数.视频编码器,
                                  '-crf', f'{参数.视频质量crf参数}',
-                                 临时视频文件], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                                 临时视频文件], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
     开始时间 = time.time()
@@ -705,7 +705,7 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
                                  '-pix_fmt', pix_fmt,
                                  '-vcodec', 参数.视频编码器,
                                  '-crf', f'{参数.视频质量crf参数}',
-                                 临时视频文件], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                                 临时视频文件], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     帧率 = float(inputVideoStream.framerate)
     总帧数 = inputVideoStream.frames
