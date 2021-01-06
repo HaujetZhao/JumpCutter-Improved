@@ -298,7 +298,6 @@ def 得到输入音频采样率(音频文件):
             print(f'音频采样率是：{采样率}')
             return 采样率
 
-
 def 提取音频流(输入文件, 输出文件, 音频采样率):
     command = f'ffmpeg -hide_banner -i "{输入文件}" -ac 2 -ar {音频采样率} -vn "{输出文件}"'
     subprocess.run(command, stderr=subprocess.PIPE)
@@ -541,7 +540,6 @@ def 处理音频(音频文件, 片段列表, 视频帧率, 参数: Parameters, c
     concat记录文件.close()
     print('音频文件处理完毕\n\n')
 
-
 def pyav处理视频流(参数: Parameters, 临时视频文件, 片段列表):
     片段速度 = [参数.静音片段速度, 参数.有声片段速度]
 
@@ -592,7 +590,6 @@ def pyav处理视频流(参数: Parameters, 临时视频文件, 片段列表):
     input_.close()
     output.close()
     print(f'\n视频流处理完毕\n')
-
 
 def ffmpeg处理视频流(参数: Parameters, 临时视频文件, 片段列表):
     片段速度 = [参数.静音片段速度, 参数.有声片段速度]
@@ -694,6 +691,10 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
     height = inputVideoStream.height
     pix_fmt = inputVideoStream.pix_fmt
     平均帧率 = float(inputVideoStream.average_rate)
+    metadata1 = input_.metadata
+    metadata2 = inputVideoStream.metadata
+    print(metadata1)
+    print(metadata2)
 
     process2 = subprocess.Popen(['ffmpeg', '-y',
                                  '-f', 'rawvideo',
@@ -790,12 +791,13 @@ def main():
 
     print(f'现在开始合并')  # 合并音视频
     if 参数.只处理音频:
-        command = f'ffmpeg -y -hide_banner -safe 0 -f concat -i "{concat记录文件}" -c:v copy "{参数.输出文件}"'
+        command = f'ffmpeg -y -hide_banner -safe 0  -f concat -i "{concat记录文件}" -i "{参数.输入文件}" -c:v copy -map_metadata 1 -map_metadata:s:a 1:s:a -map 0:a "{参数.输出文件}"'
     else:
-        command = f'ffmpeg -y -hide_banner -i "{临时视频文件}" -safe 0 -f concat -i "{concat记录文件}" -c:v copy "{参数.输出文件}"'
+        command = f'ffmpeg -y -hide_banner -i "{临时视频文件}" -safe 0 -f concat -i "{concat记录文件}" -i "{参数.输入文件}" -c:v copy -map_metadata 2 -map_metadata:s:a 2:s:a -map_metadata:s:v 2:s:v -map 0:v -map 1:a  "{参数.输出文件}"'
     subprocess.run(command, encoding='utf-8', stderr=subprocess.PIPE)
     try:
         rmtree(参数.临时文件夹)
+        ...
     except Exception as e:
         print(f'删除临时文件夹失败，可能是被占用导致，请手动删除：\n    {参数.临时文件夹}')
     os.startfile(pathlib.Path(参数.输出文件).parent)
