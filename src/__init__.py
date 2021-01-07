@@ -51,10 +51,10 @@ class Parameters():
 
         self.spleeter的Python解释器路径 = 'D:/Users/Haujet/Code/虚拟环境/Spleeter/Scripts/python.exe'
         self.spleeter的模型文件夹路径 = 'D:/Users/Haujet/Code/脚本仓库 Python/JumpCutter-Improved/src/test/pretrained_models'
-        self.使用spleeter生成辅助音频 = True
+        self.使用spleeter生成辅助音频 = False
         self.spleeter使用模型名称 = '5stems'
         self.spleeter辅助音频文件名 = 'vocals.wav'
-        self.spleeter调用命令行 = True  # 如果改成 False，就会在本脚本内调用 spleeter 模块，但是 Windows 下调用 spleeter 不能使用多线程，速度会慢些。所以建议使用命令行的方式调用 Spleeter。
+        self.spleeter调用命令行 = False  # 如果改成 False，就会在本脚本内调用 spleeter 模块，但是 Windows 下调用 spleeter 不能使用多线程，速度会慢些。所以建议使用命令行的方式调用 Spleeter。
 
     def 得到参数(self):
         self.得到输入文件()
@@ -205,6 +205,7 @@ class Parameters():
                 self.使用spleeter生成辅助音频 = self.得到布尔值('是否使用 spleeter 生成辅助音频文件用于分段？\n', self.使用spleeter生成辅助音频)
                 if self.使用spleeter生成辅助音频:
                     from spleeter.separator import Separator
+                    global Separator
             except:
                 self.使用spleeter生成辅助音频 = False
 
