@@ -751,7 +751,7 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
     process2.stdin.close()
     process2.wait()
     print(f'视频合成后帧数：{int(输出等效)}')
-    print(f'\n原来视频长度：{总帧数 / 平均帧率 / 60} 分钟，输出视频长度：{int(输出等效) / 平均帧率 / 60} 分钟\n')
+    print(f'\n原来视频长度：{原始总帧数 / 平均帧率 / 60} 分钟，输出视频长度：{int(输出等效) / 平均帧率 / 60} 分钟\n')
     print(f'\n视频合成耗时：{time.time() - 开始时间}\n')
 
 
