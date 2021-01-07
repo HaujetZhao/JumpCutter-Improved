@@ -752,7 +752,7 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
                     process2.stdin.write(frame.planes[0])
                     process2.stdin.write(frame.planes[1])
                     process2.stdin.write(frame.planes[2])
-                elif frame.format.name in ('yuyv422', 'rgb24', 'bgr24', 'argb', 'rgba', 'abgr', 'bgra', 'gray', 'gray8', 'rgb8', 'bgr8', 'pal8', ):
+                elif frame.format.name in ('yuyv422', 'rgb24', 'bgr24', 'argb', 'rgba', 'abgr', 'bgra', 'gray', 'gray8', 'rgb8', 'bgr8', 'pal8'):
                     process2.stdin.write(frame.planes[0])
                 else:
                     print(f'{frame.format.name} 像素格式不支持')
