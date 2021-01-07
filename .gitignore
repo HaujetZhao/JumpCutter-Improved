@@ -20,3 +20,9 @@ __pycache__
 icon*.png
 视频封面.png
 
+Lib/*
+Scripts/*
+pyvenv.cfg
+
+src/pretrained_models/*stems*
+

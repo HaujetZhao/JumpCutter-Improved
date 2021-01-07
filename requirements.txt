@@ -1,4 +1,3 @@
 av
-numpy
-scipy
 audiotsm
+spleeter
