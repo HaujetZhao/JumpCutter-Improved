@@ -51,7 +51,7 @@ class Parameters():
 
         self.spleeter的Python解释器路径 = 'D:/Users/Haujet/Code/虚拟环境/Spleeter/Scripts/python.exe'
         self.spleeter的模型文件夹路径 = 'D:/Users/Haujet/Code/脚本仓库 Python/JumpCutter-Improved/src/test/pretrained_models'
-        self.使用spleeter生成辅助音频 = False
+        self.使用spleeter生成辅助音频 = True
         self.spleeter使用模型名称 = '5stems'
         self.spleeter辅助音频文件名 = 'vocals.wav'
         self.spleeter调用命令行 = False  # 如果改成 False，就会在本脚本内调用 spleeter 模块，但是 Windows 下调用 spleeter 不能使用多线程，速度会慢些。所以建议使用命令行的方式调用 Spleeter。
@@ -96,6 +96,7 @@ class Parameters():
 而如果有参数不正确，需要修改，请输入对应的序号，再回车：\n\n''')
         try:
             if 用户输入 == '':
+                self.检查spleeter()
                 return
             else:
                 int(用户输入)
@@ -200,14 +201,16 @@ class Parameters():
             else:
                 self.使用spleeter生成辅助音频 = False
         else:
+            self.使用spleeter生成辅助音频 = self.得到布尔值('是否使用 spleeter 生成辅助音频文件用于分段？\n', self.使用spleeter生成辅助音频)
+
+    def 检查spleeter(self):
+        if self.使用spleeter生成辅助音频 and not self.spleeter调用命令行:
             try:
-                import spleeter
-                self.使用spleeter生成辅助音频 = self.得到布尔值('是否使用 spleeter 生成辅助音频文件用于分段？\n', self.使用spleeter生成辅助音频)
-                if self.使用spleeter生成辅助音频:
-                    from spleeter.separator import Separator
-                    global Separator
-            except:
+                from spleeter.separator import Separator
+                global Separator
+            except Exception as e:
                 self.使用spleeter生成辅助音频 = False
+                print(f'Spleeter 未能成功导入，可能是 spleeter 并没有成功安装。要确保使用 pip install spleeter 安装 spleeter 后才能使用它。')
 
     def 检查目标文件路径(self, 路径):
         目标文件夹Path = pathlib.Path('路径').parent
@@ -400,21 +403,21 @@ def 由spleeter得到辅助音频数据(音频文件, 参数: Parameters):
 
 def 音频分段再交由spleeter处理(音频文件, 参数: Parameters):
     开始时间 = time.time()
-    限制秒数 = 300
+    限制秒数 = 200
 
     输入Path = pathlib.Path(音频文件)
     片段路径前缀 = (输入Path.parent / (输入Path.stem)).as_posix()
 
     采样率, 总音频数据 = wavfile.read(音频文件)
     数据总量 = len(总音频数据)
-    片段数据量 = 采样率 * 300
+    片段数据量 = 采样率 * 限制秒数
     数据索引 = 0
     片段数 = math.ceil(数据总量 / 片段数据量)
 
     if 数据总量 <= 片段数据量:
         采样率, 总音频数据 = 由spleeter得到辅助音频数据(音频文件, 参数)
     else:
-        print(f'音频时长为 {数据总量/采样率}，超过了 300 秒。Spleeter 分离音频非常占用内存，为了避免内存不足导致崩溃，将整个音频文件分成 {片段数} 个音频依次处理。')
+        print(f'音频时长为 {数据总量/采样率}，超过了 {限制秒数} 秒。Spleeter 分离音频非常占用内存，为了避免内存不足导致崩溃，将整个音频文件分成 {片段数} 个音频依次处理。')
         片段路径列表 = []
         # 分段
         for i in range(片段数):
@@ -728,6 +731,8 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
 
     帧率 = float(inputVideoStream.framerate)
     原始总帧数 = inputVideoStream.frames
+    if 原始总帧数 == 0:
+        原始总帧数 = int(得到输入视频时长(参数.输入文件) * 平均帧率)
     总帧数 = 计算总共帧数(片段列表, 片段速度)
 
     输入等效, 输出等效 = 0.0, 0.0
@@ -741,10 +746,18 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
             if len(片段列表) > 0 and index >= 片段[1]:片段 = 片段列表.pop(0)
             输入等效 += (1 / 片段速度[片段[2]])
             while 输入等效 > 输出等效:
-                in_bytes = frame.to_ndarray().astype(np.uint8).tobytes()
-                process2.stdin.write(
-                    in_bytes
-                )
+                # in_bytes = frame.to_ndarray().astype(np.uint8).tobytes()
+                # in_bytes = frame.planes[0] + frame.planes[1] + frame.planes[2]
+                if frame.format.name in ('yuv420p', 'yuvj420p'):
+                    process2.stdin.write(frame.planes[0])
+                    process2.stdin.write(frame.planes[1])
+                    process2.stdin.write(frame.planes[2])
+                elif frame.format.name in ('yuyv422', 'rgb24', 'bgr24', 'argb', 'rgba', 'abgr', 'bgra', 'gray', 'gray8', 'rgb8', 'bgr8', 'pal8', ):
+                    process2.stdin.write(frame.planes[0])
+                else:
+                    print(f'{frame.format.name} 像素格式不支持')
+                    return False
+
                 输出等效 += 1
             if 输出等效 % 200 == 0:
                 print(
