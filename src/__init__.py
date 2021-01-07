@@ -5,6 +5,7 @@ import av
 import io
 import math
 import os
+import platform
 import pathlib
 import re
 import subprocess
@@ -53,7 +54,7 @@ class Parameters():
         self.spleeter的模型文件夹路径 = 'D:/Users/Haujet/Code/脚本仓库 Python/JumpCutter-Improved/src/test/pretrained_models'
         self.使用spleeter生成辅助音频 = True
         self.spleeter使用模型名称 = '5stems'
-        self.spleeter辅助音频文件名 = 'vocals.wav'
+        self.spleeter辅助音频文件名 = 'vocal.wav'
         self.spleeter调用命令行 = False  # 如果改成 False，就会在本脚本内调用 spleeter 模块，但是 Windows 下调用 spleeter 不能使用多线程，速度会慢些。所以建议使用命令行的方式调用 Spleeter。
 
     def 得到参数(self):
@@ -397,8 +398,9 @@ def 由spleeter得到辅助音频数据(音频文件, 参数: Parameters):
         os.chdir(模型父文件夹)
         print('正在使用 spleeter 分离音轨')
         separator = Separator('spleeter:5stems', multiprocess=False)
-        数据 = separator.separate(wavfile.read(音频文件)[1])[os.path.splitext(参数.spleeter辅助音频文件名)[0]]
-        采样率 = 44100
+        separator.separate_to_file(音频文件, (pathlib.Path(参数.临时文件夹)).as_posix())
+        采样率, 数据 = wavfile.read((pathlib.Path(参数.临时文件夹)/pathlib.Path(音频文件).stem/'vocals.wav').as_posix())
+        rmtree((pathlib.Path(参数.临时文件夹)/pathlib.Path(音频文件).stem).as_posix())
     return 采样率, 数据
 
 def 音频分段再交由spleeter处理(音频文件, 参数: Parameters):
@@ -434,6 +436,7 @@ def 音频分段再交由spleeter处理(音频文件, 参数: Parameters):
                 总音频数据 = 数据
             else:
                 总音频数据 = np.concatenate((总音频数据, 数据))
+
     print(f'\nSpleeter 耗时：{time.time() - 开始时间}\n')
     return 采样率, 总音频数据
 
@@ -759,9 +762,9 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
                     return False
 
                 输出等效 += 1
-            if 输出等效 % 200 == 0:
-                print(
-                    f'帧速：{int(int(输出等效) / max(time.time() - 开始时间, 1))}, 剩余：{总帧数 - int(输出等效)} 帧，剩余时间：{int((总帧数 - int(输出等效)) / max(1, int(输出等效) / max(time.time() - 开始时间, 1)))}s    \n')
+                if 输出等效 % 200 == 0:
+                    print(
+                        f'帧速：{int(int(输出等效) / max(time.time() - 开始时间, 1))}, 剩余：{总帧数 - int(输出等效)} 帧，剩余时间：{int((总帧数 - int(输出等效)) / max(1, int(输出等效) / max(time.time() - 开始时间, 1)))}s    \n')
     process2.stdin.close()
     process2.wait()
     print(f'视频合成后帧数：{int(输出等效)}')
@@ -833,7 +836,10 @@ def main():
         ...
     except Exception as e:
         print(f'删除临时文件夹失败，可能是被占用导致，请手动删除：\n    {参数.临时文件夹}')
-    os.startfile(pathlib.Path(参数.输出文件).parent)
+    if platform.system() == 'Windows':
+        os.system(f'explorer /select, "{pathlib.Path(参数.输出文件)}')
+    else:
+        os.startfile(pathlib.Path(参数.输出文件).parent)
     print(f'\n总共耗时：{time.time() - 开始时间}\n')
     input('\n处理完毕，回车关闭\n')
 
