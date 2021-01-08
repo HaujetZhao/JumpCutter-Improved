@@ -485,8 +485,8 @@ def 音频片段合并(片段列表:list, 输出文件:str):
 
     # FFMPEG连接音频片段
     command = f'ffmpeg -y -hide_banner -safe 0  -f concat -i "{concat文件}" -c:a copy "{输出文件}"'
-    print(command)
-    进程 = subprocess.run(command, encoding='utf-8', cwd=concat文件夹)
+    # print(command)
+    进程 = subprocess.run(command, encoding='utf-8', cwd=concat文件夹, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
     del 进程
     return
 
@@ -547,7 +547,7 @@ def 音频变速(wav音频数据列表, 声道数, 采样率, 目标速度):
 
 
 def 处理音频(音频文件, 片段列表, 视频帧率, 参数: Parameters, concat记录文件路径):
-    print(f'\n开始根据分段信息处理音频')
+    print(f'\n在子线程开始根据分段信息处理音频')
     速度 = [参数.静音片段速度, 参数.有声片段速度]
     采样率, 总音频数据 = wavfile.read(音频文件, mmap=True)
     最大音量 = 得到最大音量(总音频数据)
@@ -619,7 +619,7 @@ def 处理音频(音频文件, 片段列表, 视频帧率, 参数: Parameters, c
     # print(f'音频总帧数：{len(输出音频的数据) / 采样率 * 视频帧率}')
     # print(f'总共超出帧数：{超出 / 采样率 * 视频帧率}')
     concat记录文件.close()
-    print('\n音频文件处理完毕\n')
+    print('子线程中的音频文件处理完毕，只待视频流输出完成了\n')
     return
 
 def pyav处理视频流(参数: Parameters, 临时视频文件, 片段列表):
@@ -805,6 +805,8 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
         原始总帧数 = int(得到输入视频时长(参数.输入文件) * 平均帧率)
     总帧数 = 计算总共帧数(片段列表, 片段速度)
 
+    print(f'\n输出视频总帧数：{int(总帧数)}，输出后时长：{秒数转时分秒(int(总帧数 / 平均帧率))}\n')
+
     输入等效, 输出等效 = 0.0, 0.0
     片段 = 片段列表.pop(0)
     开始时间 = time.time()
@@ -835,7 +837,7 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
     process2.stdin.close()
     process2.wait()
     del process2
-    print(f'视频合成后帧数：{int(输出等效)}')
+    print(f'\n输出视频总帧数：{int(总帧数)}，输出后时长：{秒数转时分秒(int(总帧数 / 平均帧率))}')
     print(f'\n原来视频长度：{原始总帧数 / 平均帧率 / 60} 分钟，输出视频长度：{int(输出等效) / 平均帧率 / 60} 分钟\n')
     print(f'\n视频合成耗时：{秒数转时分秒(time.time() - 开始时间)}\n')
     return 
