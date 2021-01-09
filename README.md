@@ -66,7 +66,7 @@ Windows 64 位用户，请直接到 release 界面找网盘链接，下载 7z �
 pip install av audiotsm spleeter
 ```
 
-从 [spleeter](https://github.com/deezer/spleeter/releases) 下载 [5stems-finetune.tar.gz](https://github.com/deezer/spleeter/releases/download/v1.4.0/5stems-finetune.tar.gz) （训练好的模型），将其中的内容文件夹解压到 `src/pretrained_models/5stems-finetune` 文件夹中。
+从 [spleeter](https://github.com/deezer/spleeter/releases) 下载 [5stems-finetune.tar.gz](https://github.com/deezer/spleeter/releases/download/v1.4.0/5stems-finetune.tar.gz) （训练好的模型），将其中的内容文件夹解压到 `src/pretrained_models/5stems` 文件夹中。
 
 直接运行 `python __init__.py` ，会有中文提示，按照提示设置输入文件等参数即可。
 
