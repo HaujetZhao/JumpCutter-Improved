@@ -6,6 +6,7 @@ import os
 import platform
 import pathlib
 import re
+import json
 import subprocess
 import sys
 import tempfile
@@ -54,7 +55,7 @@ class Parameters():
 
         self.spleeter的Python解释器路径 = 'python'
         self.spleeter的模型文件夹路径 = (pathlib.Path('.').resolve() / 'pretrained_models').as_posix()
-        self.使用spleeter生成辅助音频 = True
+        self.使用spleeter生成辅助音频 = False
         self.spleeter使用模型名称 = '5stems-finetune'
         self.spleeter辅助音频文件名 = 'vocal.wav'
         self.spleeter调用命令行 = False  # 如果改成 False，就会在本脚本内调用 spleeter 模块，但是 Windows 下调用 spleeter 不能使用多线程，速度会慢些。所以建议使用命令行的方式调用 Spleeter。
@@ -778,26 +779,41 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
     input_ = av.open(参数.输入文件)
     inputVideoStream = input_.streams.video[0]
     inputVideoStream.thread_type = 'AUTO'
-    width = inputVideoStream.width
-    height = inputVideoStream.height
-    pix_fmt = inputVideoStream.pix_fmt
     平均帧率 = float(inputVideoStream.average_rate)
-    # metadata1 = input_.metadata
-    # metadata2 = inputVideoStream.metadata
-    # print(metadata1)
-    # print(metadata2)
 
-    process2 = subprocess.Popen(['ffmpeg', '-y',
+    输入视频流查询命令 = f'ffprobe -of json -select_streams v -show_streams "{参数.输入文件}"'
+    输入视频流查询结果 = subprocess.run(输入视频流查询命令, capture_output=True, encoding='utf-8')
+    输入视频流信息 = json.loads(输入视频流查询结果.stdout)
+    del 输入视频流查询结果
+    color_primaries = 输入视频流信息['streams'][0]['color_primaries']
+    color_range = 输入视频流信息['streams'][0]['color_range']
+    color_space = 输入视频流信息['streams'][0]['color_space']
+    color_transfer = 输入视频流信息['streams'][0]['color_transfer']
+    field_order = 输入视频流信息['streams'][0]['field_order']
+    height = 输入视频流信息['streams'][0]['coded_height']
+    width = 输入视频流信息['streams'][0]['coded_width']
+    pix_fmt = 输入视频流信息['streams'][0]['pix_fmt']
+    # 用 ffprobe 获得信息：
+    # ffprobe -of json -select_streams v -show_entries stream=r_frame_rate "D:\Users\Haujet\Videos\2020-11-04 18-16-56.mkv"
+    process2Command = ['ffmpeg', '-y',
                                  '-f', 'rawvideo',
                                  '-vcodec', 'rawvideo',
                                  '-pix_fmt', pix_fmt,
+                                 '-color_primaries', f'{color_primaries}',
+                                 '-color_range', f'{color_range}',
+                                 '-colorspace', f'{color_space}',
+                                 '-field_order', f'{field_order}',
+                                 '-color_trc', f'{color_transfer}',
                                  '-s', f'{width}*{height}',
+                                 '-frame_size', f'{width}*{height}',
                                  '-framerate', f'{平均帧率}',
                                  '-i', '-',
-                                 '-pix_fmt', pix_fmt,
+                                 '-s', f'{width}*{height}',
                                  '-vcodec', 参数.视频编码器,
                                  '-crf', f'{参数.视频质量crf参数}',
-                                 临时视频文件], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                 临时视频文件]
+    print(process2Command)
+    process2 = subprocess.Popen(process2Command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     帧率 = float(inputVideoStream.framerate)
     原始总帧数 = inputVideoStream.frames
@@ -814,21 +830,27 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
     index = 0
     for packet in input_.demux(inputVideoStream):
         for frame in packet.decode():
+            frame = frame.reformat()
             index += 1
             if len(片段列表) > 0 and index >= 片段[1]:片段 = 片段列表.pop(0)
             输入等效 += (1 / 片段速度[片段[2]])
             while 输入等效 > 输出等效:
-                # in_bytes = frame.to_ndarray().astype(np.uint8).tobytes()
-                # in_bytes = frame.planes[0] + frame.planes[1] + frame.planes[2]
-                if frame.format.name in ('yuv420p', 'yuvj420p'):
-                    process2.stdin.write(frame.planes[0])
-                    process2.stdin.write(frame.planes[1])
-                    process2.stdin.write(frame.planes[2])
-                elif frame.format.name in ('yuyv422', 'rgb24', 'bgr24', 'argb', 'rgba', 'abgr', 'bgra', 'gray', 'gray8', 'rgb8', 'bgr8', 'pal8'):
-                    process2.stdin.write(frame.planes[0])
+                # 经过测试得知，在一些分辨率的视频中，例如一行虽然只有 2160 个像素，但是这一行的数据不止 2160 个，有可能是2176个，然后所有行的数据是连在一起的
+                # 在 python 里很难分离，只能使用 pyav 的 to_ndarray 再 tobytes
+                if frame.planes[1].width != frame.planes[0].line_size:
+                    # in_bytes = frame.to_ndarray().astype(np.uint8).tobytes()
+                    in_bytes = frame.to_ndarray().tobytes()
+                    process2.stdin.write(in_bytes)
                 else:
-                    print(f'{frame.format.name} 像素格式不支持')
-                    return False
+                    if frame.format.name in ('yuv420p', 'yuvj420p'):
+                        process2.stdin.write(frame.planes[0].to_bytes()[0:frame.planes[0].width])
+                        process2.stdin.write(frame.planes[1].to_bytes()[0:frame.planes[1].width])
+                        process2.stdin.write(frame.planes[2].to_bytes()[0:frame.planes[2].width])
+                    elif frame.format.name in ('yuyv422', 'rgb24', 'bgr24', 'argb', 'rgba', 'abgr', 'bgra', 'gray', 'gray8', 'rgb8', 'bgr8', 'pal8'):
+                        process2.stdin.write(frame.planes[0].to_bytes()[0:frame.planes[0].width])
+                    else:
+                        print(f'{frame.format.name} 像素格式不支持')
+                        return False
 
                 输出等效 += 1
                 if 输出等效 % 200 == 0:
