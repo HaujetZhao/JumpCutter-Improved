@@ -102,7 +102,6 @@ class Parameters():
 而如果有参数不正确，需要修改，请输入对应的序号，再回车：\n\n''')
         try:
             if 用户输入 == '':
-                self.检查spleeter()
                 return
             else:
                 int(用户输入)
@@ -209,14 +208,6 @@ class Parameters():
         else:
             self.使用spleeter生成辅助音频 = self.得到布尔值('\n是否使用 spleeter 生成辅助音频文件用于分段？', self.使用spleeter生成辅助音频)
 
-    def 检查spleeter(self):
-        if self.使用spleeter生成辅助音频 and not self.spleeter调用命令行:
-            try:
-                from spleeter.separator import Separator
-                global Separator
-            except Exception as e:
-                self.使用spleeter生成辅助音频 = False
-                print(f'Spleeter 未能成功导入，可能是 spleeter 并没有成功安装。要确保使用 pip install spleeter 安装 spleeter 后才能使用它。')
 
     def 检查目标文件路径(self, 路径):
         目标文件夹Path = pathlib.Path('路径').parent
@@ -437,6 +428,7 @@ def 由spleeter得到分析音频(输入文件, 输出文件, 参数: Parameters
 
 
     if not 参数.spleeter调用命令行:
+        from spleeter.separator import Separator
         os.chdir(模型父文件夹)
         参数.separator = Separator('spleeter:5stems', multiprocess=False)
 
@@ -470,6 +462,8 @@ def 由spleeter得到分析音频(输入文件, 输出文件, 参数: Parameters
         wavfile.write(输出文件, 新采样率, 参数.临时数据)
         参数.清空临时数据()
     参数.清空separator()
+    if not 参数.spleeter调用命令行:
+        del Separator
     print(f'\nSpleeter 耗时：{秒数转时分秒(time.time() - 开始时间)}\n')
     return
 
