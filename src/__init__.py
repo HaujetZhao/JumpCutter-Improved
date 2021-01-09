@@ -55,7 +55,7 @@ class Parameters():
 
         self.spleeter的Python解释器路径 = 'python'
         self.spleeter的模型文件夹路径 = (pathlib.Path('.').resolve() / 'pretrained_models').as_posix()
-        self.使用spleeter生成辅助音频 = False
+        self.使用spleeter生成辅助音频 = True
         self.spleeter使用模型名称 = '5stems-finetune'
         self.spleeter辅助音频文件名 = 'vocal.wav'
         self.spleeter调用命令行 = False  # 如果改成 False，就会在本脚本内调用 spleeter 模块，但是 Windows 下调用 spleeter 不能使用多线程，速度会慢些。所以建议使用命令行的方式调用 Spleeter。
