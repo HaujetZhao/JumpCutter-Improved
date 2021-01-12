@@ -277,7 +277,7 @@ def 得到输入视频时长(视频文件):
     进程 = subprocess.run(command, encoding='utf-8', capture_output=True)
     params = 进程.stderr
     del 进程
-    m = re.search(r'Duration.+(\d{2}:\d{2}:\d{2}.\d{2}).+\n\s+Stream #.*Video.* ([0-9\.]*) fps', params)
+    m = re.search(r'Duration.+(\d{2}:\d{2}:\d{2}.\d{2}).+\n\s+Stream #.*Video.* ([0-9.]*) fps', params)
     if m is not None:
         长度split = m.group(1).split(':')
         视频长度 = int(长度split[0]) * 60 * 60 + int(长度split[1]) * 60 + float(长度split[2])
@@ -290,7 +290,7 @@ def 得到输入视频帧率(视频文件):
     params = 进程.stderr.split('\n')
     del 进程
     for line in params:
-        m = re.search(r'Stream #.*Video.* ([0-9\.]*) fps', line)
+        m = re.search(r'Stream #.*Video.* ([0-9.]*) fps', line)
         if m is not None:
             视频帧率 = float(m.group(1))
             print(f'\n视频帧率是：{视频帧率}')
