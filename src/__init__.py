@@ -32,7 +32,7 @@ class Parameters():
         self.输入文件 = ''
         self.输出文件 = ''
 
-        self.静音片段速度 = 4.00
+        self.静音片段速度 = 8.00
         self.有声片段速度 = 1.00
 
         self.片段间缓冲帧数 = 3
@@ -779,25 +779,43 @@ def ffmpeg和pyav综合处理视频流(参数: Parameters, 临时视频文件, �
     输入视频流查询结果 = subprocess.run(输入视频流查询命令, capture_output=True, encoding='utf-8')
     输入视频流信息 = json.loads(输入视频流查询结果.stdout)
     del 输入视频流查询结果
-    color_primaries = 输入视频流信息['streams'][0]['color_primaries']
-    color_range = 输入视频流信息['streams'][0]['color_range']
-    color_space = 输入视频流信息['streams'][0]['color_space']
-    color_transfer = 输入视频流信息['streams'][0]['color_transfer']
-    field_order = 输入视频流信息['streams'][0]['field_order']
+    # if 'color_primaries' in 输入视频流信息['streams'][0]:
+    #     color_primaries = 输入视频流信息['streams'][0]['color_primaries']
+    # else:
+    #     color_primaries = None
+    #
+    # if 'color_range' in 输入视频流信息['streams'][0]:
+    #     color_range = 输入视频流信息['streams'][0]['color_range']
+    # else:
+    #     color_range = None
+    #
+    # if 'color_space' in 输入视频流信息['streams'][0]:
+    #     color_space = 输入视频流信息['streams'][0]['color_space']
+    # else:
+    #     color_space = None
+    #
+    # if 'color_transfer' in 输入视频流信息['streams'][0]:
+    #     color_transfer = 输入视频流信息['streams'][0]['color_transfer']
+    # else:
+    #     color_transfer = None
+    #
+    # if 'field_order' in 输入视频流信息['streams'][0]:
+    #     field_order = 输入视频流信息['streams'][0]['field_order']
+    # else:
+    #     field_order = None
+
+
     height = 输入视频流信息['streams'][0]['coded_height']
     width = 输入视频流信息['streams'][0]['coded_width']
     pix_fmt = 输入视频流信息['streams'][0]['pix_fmt']
+
+
     # 用 ffprobe 获得信息：
     # ffprobe -of json -select_streams v -show_entries stream=r_frame_rate "D:\Users\Haujet\Videos\2020-11-04 18-16-56.mkv"
     process2Command = ['ffmpeg', '-y',
                                  '-f', 'rawvideo',
                                  '-vcodec', 'rawvideo',
                                  '-pix_fmt', pix_fmt,
-                                 '-color_primaries', f'{color_primaries}',
-                                 '-color_range', f'{color_range}',
-                                 '-colorspace', f'{color_space}',
-                                 '-field_order', f'{field_order}',
-                                 '-color_trc', f'{color_transfer}',
                                  '-s', f'{width}*{height}',
                                  '-frame_size', f'{width}*{height}',
                                  '-framerate', f'{平均帧率}',
